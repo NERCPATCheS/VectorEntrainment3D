@@ -483,11 +483,11 @@ muBed = round(mean(elevZ)); % mean bed elevation as index
 topElev = size(img,2); % highest elevation in image
 
 % clipping frontal image to mean bed elevation
-imgProt = img(:,(topElev-muBed):topElev); % protrusion above mean bed
+imgProt = img(:,(topElev-muBed):topElev); % projection above mean bed
 
-% contruct velocity profile over protrusion image
+% contruct velocity profile over projection image
 z0 = d84Idx/10; % setting length scale to 10% of D84
-f = log(((0:topElev)' + z0)/z0);
+f = log(((0:topElev)' + z0)/z0); % logarithmic profile
 f = f(1:length((topElev-muBed):topElev));
 % g = (0:(length(f)-1))*max(f)/(length(f)-1); % linear profile (for testing)
 
@@ -500,7 +500,7 @@ u2 = tau/rho/kappa^2*f.^2; %*cos(beta*pi/180)/cos(gamma*pi/180); % Kirchner eqn 
 
 
 % --------------------INTEGRATION OVER VELOCITY PROFILE--------------------
-% THREE CASES: For p = protrusion height, D = stone bottom, z = 0 at mean bed
+% THREE CASES: For p = projection height, D = stone bottom, z = 0 at mean bed
 % 1. p > p - D > z = 0: stone above mean bed elevation (full force)
 % 2. p > z = 0 > p - D: stone intersects mean bed elevation (partial force)
 % 3. z = 0 > p > p - D: stone below mean bed elevation (no force)
@@ -565,6 +565,8 @@ Fl = [0 0 -Cl/3*rho*ohArea*er*(u2(p) - u2(pmD))]'; % Kirchner eqn (11)
 appFd = round(zElev*u2dA/sum(u2dA)); % profile distance to apply force
 idxZ = proTrue + (idx - appFd); % index distance from top to apply force
 protMM = sum(u2dA > 0)*resMM; % protrusion height of stone (mm)
+
+% CHANGE FROM PROTRUSION TO PROJECTION UPDATE!!!@@
 
 
 

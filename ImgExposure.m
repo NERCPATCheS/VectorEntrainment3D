@@ -147,7 +147,7 @@ dataParticles(n).OverheadAreaMM2 = 0;
 dataParticles(n).FrontalImage = 0;
 
 % normalizing sine of angles such that weights sum to unity
-normSin = sin(viewAngles*pi/180)/sum(sin(viewAngles*pi/180));
+normSin = sin(viewAngles*pi/180).^2/sum(sin(viewAngles*pi/180).^2);
 
 for i = 1:n
     dataParticles(i).ExposureRatio = surfaceTable(i,:);
