@@ -1,27 +1,16 @@
 % Empirical cohesive force model
 
-% Experiment was factorial design with response of vertical force (Y) pulls
-% of a 25mm glass marble from a wet sand-clay mixuture where the matrix had
-% sufficient time to drain to soil retention.  Experiment was designed with
-% 100% clay as a control to evaluate two treatment effects: sand size and
-% fraction of clay in the mixture (see Appendix C of Voepel et al, 2019). 
-
-% We develop a power law model that calculates force per stone surface area 
-% given sand size and fraction of clay content in the matrix.  We need to
-% divide force/surface area of mixture by mean(force/surface area) of clay.
-% First check whether force pulls from 100% clay are linearly dependent on 
-% burial depth.  If so, regress three power law models, one for each burial
-% depth using 3 corresponding mean(forceClay/area) divisors for each depth.  
-% If not, regress single model using common mean(forceClay/area) divisor.
-
-% Exponentiate linearised model to return to power law remembering to
-% multipy exp(intercept) by mean(forceClay/area) to obtain model slope.
-
 clc
 clear
 close all
 
 load cohesive
+
+% set figure and graphics parameters (aspect ratio 1:1)
+scrsz = get(0,'ScreenSize'); %[left, bottom, width, height]
+newScrxz = [scrsz(3)/5 scrsz(4)/5 scrsz(3)*1.95/5 scrsz(4)*3/5];
+figure('Name','Figure C.1: Modelled versus observed cohesive force.',...
+    'NumberTitle','off','Position',newScrxz)
 
 
 % STEP 1: CHECK DEPTH DEPENDENCY OF FORCE PULLS FOR CLAY
@@ -45,15 +34,17 @@ frac = mix(:,3);
 frac(frac == 0) = 0.001;
 mix(:,3) = frac;
 
-% linear model
-% (NOT SIGNIFICANT, pVal < .001, R2 = 0.54)
+% log-linearised model
+% (VERY SIGNIFICANT, pVal < .001, R2 = 0.54)
 y = log(mix(:,7));
 n = length(y);
 X = [ones(n,1) log(mix(:,2:3))];
 [b,bint,r,rint,stats] = regress(y,X); % stats = [R2, F, pval, sig2]
 
 % checking residuals for normality (looks normal!)
+% recall: if log(X) is normal, then X is lognormal
 % qqplot(r)
+% figure
 
 % STEP 3: PLOTTING PAIRED COMPARISON
 % power law model intercept
@@ -92,6 +83,8 @@ str{1} = sprintf('a = %0.6f', a);
 str{2} = sprintf('b = %0.4f', b(2));
 str{3} = sprintf('c = %0.4f', b(3));
 text(0.002,0.0003,str,'FontSize',20,'Color','black','HorizontalAlignment','Left')
+txt = '\eta_{\phi} = a{\it D}^{ b}_{\phi}{\it F}^{ c}';
+text(0.0002,0.004,txt,'FontSize',20,'Color','black')
 xlabel('observed force/area (N mm^{-2})')
 ylabel('fitted force/area (N mm^{-2})')
 set(gca,'FontSize',20)
@@ -132,21 +125,3 @@ set(gca,'FontSize',20)
 % save('cohesive.mat')
 
 
-%%
-
-clear
-clc
-load('Run3-4BB-ERsin2','dataParticles')
-
-n = length(dataParticles);
-tau = zeros(n,2);
-for k = 1:n
-    
-    if(~isempty(dataParticles(k).Entrainment))
-        tau(k,1) = k;
-        tau(k,2) = dataParticles(k).Entrainment.TauCrStar;
-    end
-    
-end
-
-tau = tau(tau(:,1)>0,:);
