@@ -4,6 +4,7 @@ clc
 clear
 close all
 
+% see commented code block below for constructing 'cohesive' MAT file
 load cohesive
 
 % set figure and graphics parameters (aspect ratio 1:1)
@@ -100,28 +101,26 @@ set(gca,'FontSize',20)
 % clc
 % clear
 % close all
-% 
-% 
-% 
+%
+%
+%
 % % read in data and headers
 % [clay, clayHeader, ~] = xlsread('clay.xlsx');
 % [mix, mixHeader, ~] = xlsread('mix.xlsx');
-% 
+%
 % % calculating force per area from depth for both clay and mix
 % clay = [clay 2*pi*(25/2)*clay(:,1)]; % area for spherical cap
 % mix = [mix 2*pi*(25/2)*mix(:,1)];
 % clay = [clay clay(:,2)./clay(:,3)]; % force/area
 % mix = [mix mix(:,4)./mix(:,5)];
 % mix = [mix mix(:,6)/mean(clay(:,4))]; % (force/area)/mean(clayforce/area)
-% 
+%
 % % updating headers
 % clayHeader{3} = 'areaMM2';
 % mixHeader{5} = 'areaMM2';
 % clayHeader{4} = 'forcePerArea';
 % mixHeader{6} = 'forcePerArea';
 % mixHeader{7} = 'forcePerAreaPerMeanClay';
-% 
+%
 % % save data for use above
 % save('cohesive.mat')
-
-

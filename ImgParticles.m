@@ -4,49 +4,49 @@ function ImgParticles(outFile, resMM)
 % ImgParticles calculates granular metrics for each particle in the sample.
 %
 % ImgParticles(outFile, resMM) is a subroutine that calculates principal
-% axis lengths and their corresponding spatial orientation, the maximum 
+% axis lengths and their corresponding spatial orientation, the maximum
 % elevation of the particle and its coordinates, and the fraction of total
-% granular surface area in contact with the fine-grained matrix. 
+% granular surface area in contact with the fine-grained matrix.
 %
-% ImgParticles requires the MATLAB Image Processing Toolbox, the Statistics 
+% ImgParticles requires the MATLAB Image Processing Toolbox, the Statistics
 % and Machine Learning Toolbox, and has the following subroutine arguments:
-% 
+%
 %   outFile = name of MAT file to store granular metrics for each stone
 %   resMM = voxel side length resolution for the scanned sample image (mm)
-% 
+%
 % ImgParticles appends an update to the structure array 'dataParticles' that
-% is saved to the 'outFile' MAT file and contains the following additional 
+% is saved to the 'outFile' MAT file and contains the following additional
 % metrics for each particle:
 %
 %   MajorAxisMM = the major principal axis of the particle (mm)
 %   MedianAxisMM = the median principal axis of the particle (mm)
 %   MinorAxisMM = the minor principal axis of the particle (mm)
-%   AxisVectors = a 3x3 matrix that describes particle spatial orientation
+%   AxisVectors = 3x3 orthonormal matrix describing axes spatial orientation
 %   MaxElevMM = the maximum elevation of the particle in the sample (mm)
-%   MaxElevCoord = the 3D coordinates of MaxElevMM as voxel element
-%   MatrixContactAreaRatio = matrix fines contact area-t0-total area ratio
+%   MaxElevCoord = the 3D coordinates of MaxElevMM as voxel indices
+%   MatrixContactAreaRatio = matrix fines contact area-to-total area ratio
 %
-% Metrics for cropped off stones are empty sets for axis lengths and their 
+% Metrics for bottom cropped stones are empty sets for axis lengths and their
 % corresponding spatial orientation.  AxisVectors are an orthonormal set of
-% 3D unit vectors that define the spatial orientation of the principal axes.  
-% MaxElevMM has lower values for upper most grains and higher values for
-% lower most grains since the z-axis is in the direction of gravity.
+% 3D unit vectors that define the spatial orientation of the principal axes.
+% Lower valued MaxElevMM are the upper most grains since the z-axis is in the
+% direction of gravity.
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
 % DATE: 15 October 2018
 %
-% See also ImgStacks, ImgContacts, ImgBedExtend, ImgSurfaces, ImgExposure, 
+% See also ImgStacks, ImgContacts, ImgBedExtend, ImgSurfaces, ImgExposure,
 % and ImgEntrainment.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 %---------CHECKING REQUIREMENTS BEFORE RUN------------
@@ -114,7 +114,7 @@ for k = 1:dataCount
 
     % get principal axes and original xyz lengths in milimeters
     principalAxes = (max(xyzRot) - min(xyzRot))*resMM;
-    
+
 %     % for checking stone rotations (comment when finished)
 %     stoneCheck(k,:) = (max(xyzStone) - min(xyzStone))*resMM;
 
@@ -178,11 +178,11 @@ end
 function [se] = strel3d(sz)
 
 % modify strel for 3D spherical SE
-sw = (sz - 1)/2; 
-ses2 = ceil(sz/2); 
-[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw); 
-m = sqrt(x.^2 + y.^2 + z.^2); 
-b = (m <= m(ses2, ses2, sz)); 
+sw = (sz - 1)/2;
+ses2 = ceil(sz/2);
+[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw);
+m = sqrt(x.^2 + y.^2 + z.^2);
+b = (m <= m(ses2, ses2, sz));
 se = strel('arbitrary', b);
 
 end

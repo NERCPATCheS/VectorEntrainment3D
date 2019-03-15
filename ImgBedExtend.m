@@ -6,22 +6,24 @@ function ImgBedExtend(outFile, outPath, radTrim)
 % ImgBedExtend(outFile, outPath, radTrim) is a subroutine that replicates
 % binary copies of the scanned sample image around the edge of the original
 % sample image. This effectively extends the bed around the original sample
-% image so that hiding effects of upstream stones may be realised.  Where 
+% image so that hiding effects of upstream stones may be realised.  Where
 % any stone exists, the binary logical is true. It is then converted to a
 % label matrix where all stones in the extended bed are assigned a common
-% ParticleID = n + 1 for n total stones in the sample (see README).
+% ParticleID = n + 1 where n is the stone count in the sample (see README).
+% Since the outer edge of the sample tends to be rounded, a slight overlap
+% of binary replicates are necessary to mimic natural bed surface continutity.
 %
 % ImgBedExtend requires the MATLAB Image Processing Toolbox, the Mapping
 % Toolbox, and has the following subroutine arguments:
-% 
+%
 %   outFile = name of MAT file to store a 3D label array of the extended bed
 %   outPath = path from current working directory to write an output image
 %   radTrim = a voxel distance to overlap original sample before trimmming
-% 
+%
 % ImgBedExtend writes the final 'labelParticlesBed' to a 3D TIFF image in
 % the 'outPath' folder and saves the 3D image array in the 'outFile'.
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
@@ -30,12 +32,12 @@ function ImgBedExtend(outFile, outPath, radTrim)
 % See also ImgStacks, ImgContacts, ImgParticles, ImgSurfaces, ImgExposure,
 % and ImgEntrainment.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 %---------CHECKING REQUIREMENTS BEFORE RUN------------
@@ -53,7 +55,7 @@ end
 % load data, get image size and particle count
 load(outFile)
 [x, y, z] = size(labelParticlesFull);
-n = length(dataParticles);   
+n = ccParticlesFull.NumObjects;
 
 % get coordinate bounds from BoundingBox field
 bb = extractfield(dataParticles,'BoundingBox');
@@ -71,7 +73,7 @@ centY = floor(mean([minXYZ(2) maxXYZ(2)]));
 centZ = floor(mean([minXYZ(3) maxXYZ(3)]));
 centXYZ = [centX centY centZ];
 
-% make trimmed XY radius to overlap labelled stones 
+% make trimmed XY radius to overlap labelled stones
 R = max(maxXYZ(1:2) - minXYZ(1:2)) - radTrim;
 
 % make spherical radius to trim overall image
@@ -131,12 +133,11 @@ end % end ImgBedExtend function
 function [se] = strel3d(sz)
 
 % modify strel for 3D spherical SE
-sw = (sz - 1)/2; 
-ses2 = ceil(sz/2); 
-[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw); 
-m = sqrt(x.^2 + y.^2 + z.^2); 
-b = (m <= m(ses2, ses2, sz)); 
+sw = (sz - 1)/2;
+ses2 = ceil(sz/2);
+[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw);
+m = sqrt(x.^2 + y.^2 + z.^2);
+b = (m <= m(ses2, ses2, sz));
 se = strel('arbitrary', b);
 
 end
-

@@ -6,28 +6,28 @@ function [viewImages, surfaces] = ImgSurfaces(outFile, outPath, viewAngles)
 % [viewImages, surfaces] = ImgSurfaces(outFile, outPath, viewAngles) uses a
 % set of user defined viewing angles from 0 to 90 degrees (see NOTE below)
 % to generate tilted 3D images and their corresponding 2D projected surfaces
-% for use in subsequent subroutine calculations. 
+% for use in subsequent subroutine calculations.
 %
 % NOTE: User must include both 0 and 90 degree angles as these are used in
-% the subsequent 'ImgExposure' subroutine run to calculate and store both 
+% the subsequent 'ImgExposure' subroutine run to calculate and store both
 % parallel and perpendicular 2D cross-sectional grain areas and to generate
 % a downstream image of each grain used in drag force calculations.
 %
-% ImgSurfaces requires the MATLAB Image Processing Toolbox, and has the 
+% ImgSurfaces requires the MATLAB Image Processing Toolbox, and has the
 % following function arguments:
-% 
+%
 %   outFile = name of MAT file to store metrics for each particle
 %   outPath = path from current working directory to write tilted bed images
 %   viewAngles = vector of bed viewing angles where zero is the overhead view
-% 
-% ImgSurfaces creates two folders in the 'outPath' folder, 'Rotated/' and 
+%
+% ImgSurfaces creates two folders in the 'outPath' folder, 'Rotated/' and
 % 'Surface/', to write 3D rotated images and 2D rotated label surfaces as
-% TIFF images under path and filenames 
-% 
+% TIFF images under path and filenames
+%
 %   <outPath>Rotated/labelParticlesBedXXX.tif, and
 %   <outPath>Surface/labelSurfaceXXX.tif,
 %
-% where XXX is the user defined viewing angle (bewtween 0 and 90 degrees). 
+% where XXX is the user defined viewing angle (bewtween 0 and 90 degrees).
 %
 % ImgSurfaces returns two cell vectors of the same length as 'viewAngles'
 % where each cell element contains a rotated image as follows:
@@ -39,7 +39,7 @@ function [viewImages, surfaces] = ImgSurfaces(outFile, outPath, viewAngles)
 % further calculations; therefore, 'ImgSurfaces' and 'ImgExposure' should
 % be run sequentially for each sample so as not to overwrite these vectors.
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
@@ -48,12 +48,12 @@ function [viewImages, surfaces] = ImgSurfaces(outFile, outPath, viewAngles)
 % See also ImgStacks, ImgContacts, ImgParticles, ImgBedExtend, ImgExposure,
 % and ImgEntrainment.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 
@@ -150,7 +150,7 @@ function [filename] = MakeFileNames(outPath, fileRoot, childFolder, angles)
     % make filenames to write surface tiffs
     filename = cell(size(angles));
     outFolder = char(strcat(pwd,outPath,childFolder));
-    
+
     % make folder if it doesn't exist
     if not(7 == exist(outFolder,'dir'))
         mkdir(outFolder)
@@ -174,20 +174,20 @@ end
 
 % makes affine 3D rotation matrices for all angles (out is cell)
 function [tform] = RotationMatrix(angles)
-    
+
     theta = pi/180*angles;
     n = length(theta);
     c = cos(theta);
     s = sin(theta);
     tform = cell(size(theta));
     for i = 1:n
-        
-        ty = [c(i) 0 s(i) 0 
+
+        ty = [c(i) 0 s(i) 0
                 0  1   0  0
              -s(i) 0 c(i) 0
                 0  0   0  1];
-        tform{i} = affine3d(ty); 
-        
+        tform{i} = affine3d(ty);
+
     end
-    
+
 end

@@ -1,86 +1,26 @@
 # VectorEntrainment3D
-A vector based 3D sediment entrainment model for X-ray computed tomography scanned riverbed grains
+A vector-based 3D rolling motion sediment entrainment model was developed with application to X-ray computed tomography (XCT) scanned riverbed grains.  VectorEntrainment3D extracts grain characteristics and calculates grain-to-grain contact points in an effort to estimate threshold of entrainment critical shear stress.  A vector-based 3D moment balance is used to calculate the entrainment threshold of individual surface grains. A cohesive force model is used to estimate resistance forces associated with coarse grain contact with a fine-grain matrix.  Once critical shear stress is determined, three angles are calculated, which describe the orientation of the grain's centre of mass and its two contact points: the bearing and tilt angles for the 3D rotation plane and the pivot angle contained therein.  Images of riverbed samples must be processed to separate grains and to extract the fine-grain matrix.  Two sets of image samples used in the following paper are also provided.
+
+[Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+Development of a vector-based 3D grain entrainment model with
+application to X-ray computed tomography (XCT)scanned riverbed
+sediment, *Earth Surface Processes and Landforms* doi: 10.1002/esp.4608](https://doi.org/10.1002/esp.4608)
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+Clone this GitHub project to a local folder on a computer that has MATLAB installed.  Please note the following Prerequisites.
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+To run the 3D entrainment code, you will need MATLAB R2018a or higher installed with the following MATLAB Toolboxes:
 
-```
-Give examples
-```
+* Image Processing Toolbox
+* Mapping Toolbox
+* Parallel Computing Toolbox
+* Statistics and Machine Learning Toolbox
 
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
-
-## Running the tests
-
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
-
-## Authors
-
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+There are a suite of functions and subroutines that are run from the `main.m` script.  Follow the instructions in the `main.m` header.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+This project is licensed under the GNU General Public License version 3 - see the [LICENSE](LICENSE) file for details

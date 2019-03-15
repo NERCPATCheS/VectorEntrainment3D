@@ -6,19 +6,19 @@ function ImgExposure(outFile, viewAngles, viewImages, surfaces, resMM)
 % ImgExposure(outFile, viewAngles, viewImages, surfaces, resMM) uses two
 % cell vectors of images returned by the 'ImgSurface' function--'viewImages'
 % and 'surfaces'--to calculate an exposure ratio vector at 'viewAngles', a
-% corresponding exposure factor, overhead and frontal cross-sectional grain 
+% corresponding exposure factor, overhead and frontal cross-sectional grain
 % areas, and a frontal view binary image of a single grain for each stone.
-% 
+%
 % ImgExposure requires the MATLAB Parallel Computing Toolbox, the MATLAB
-% Image Processing Toolbox, the MATLAB Statistics and Machine Learning 
+% Image Processing Toolbox, the MATLAB Statistics and Machine Learning
 % Toolbox and calls on the following subroutine arguments:
-% 
+%
 %   outFile = name of MAT file to store the updated 'dataParticles' array
 %   viewAngles = set of bed viewing angles where zero is the overhead view
 %   viewImages = cell vector of 3D labelled images rotated at 'viewAngles'
 %   surfaces = cell vector of 2D projected images for each 'viewImages'
 %   resMM = voxel side length resolution for the scanned sample image (mm)
-% 
+%
 % ImgExposure updates and saves the 'dataParticles' structure array with
 % the following metrics for each stone in the sample:
 %
@@ -30,7 +30,11 @@ function ImgExposure(outFile, viewAngles, viewImages, surfaces, resMM)
 %
 % ImgExposure saves the 'dataParticles' and 'viewAngles' to the 'outFile'.
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% IMPORTANT: The subroutines 'ImgSurfaces' and 'ImgExposure' should be run
+% sequentially for each sample so as not to overwrite 'ImgExposure' input data,
+% 'viewImages' and 'surfaces', which are return from 'ImgSurfaces'.
+%
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
@@ -39,12 +43,12 @@ function ImgExposure(outFile, viewAngles, viewImages, surfaces, resMM)
 % See also ImgStacks, ImgContacts, ImgParticles, ImgBedExtend, ImgSurfaces,
 % and ImgEntrainment.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 
@@ -108,7 +112,7 @@ for k = 1:m % loop over surfaces (excluding 270 degree surface)
         % union all slices to get area of stone viewed at kth angle
         imSlice = particle(:,:,1);
         for j = 2:size(particle,3)
-            imSlice = imSlice | particle(:,:,j);    
+            imSlice = imSlice | particle(:,:,j);
         end
 
         % storing downstream and overhead viewed areas (mm2)
@@ -149,6 +153,7 @@ dataParticles(n).FrontalImage = 0;
 % normalizing sine of angles such that weights sum to unity
 normSin = sin(viewAngles*pi/180).^2/sum(sin(viewAngles*pi/180).^2);
 
+% storing information for each stone
 for i = 1:n
     dataParticles(i).ExposureRatio = surfaceTable(i,:);
     dataParticles(i).ExposureFactor = normSin*surfaceTable(i,:)';
@@ -157,11 +162,10 @@ for i = 1:n
     dataParticles(i).FrontalImage = frontalImage{i};
 end
 
+% saving updated 'dataParticles' and 'viewAngles' to the outFile
 fprintf('Updating dataParticles mat file %s\n',outFile)
 save(outFile,'dataParticles','viewAngles','-append')
 
 toc
 
 end % end function
-
-

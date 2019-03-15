@@ -4,18 +4,18 @@ function ImgContacts(outFile,seDiam,sampleRate,outGroup)
 % ImgContacts obtains contact points between object stone and other grains.
 %
 % ImgContacts(outFile,seDiam,sampleRate,outGroup) is a subroutine that finds
-% all contact points between each object stone and its neighbouring grains, 
+% all contact points between each object stone and its neighbouring grains,
 % and appends results into the 'dataParticles' structure array.
 %
 % ImgContacts requires the MATLAB Parallel Computing Toolbox, the MATLAB
-% Image Processing Toolbox, the MATLAB Statistics and Machine Learning 
+% Image Processing Toolbox, the MATLAB Statistics and Machine Learning
 % Toolbox and calls on the following subroutine arguments:
-% 
+%
 %   outFile = name of MAT file to store the Nx8 contact stone metrics
 %   seDiam = voxel distance around object stone to 'grab' local contact stones
 %   sampleRate = fraction of object stone surface coordinates to resample
 %   outGroup = object stone ID to write local group surfaces to TIFF file
-% 
+%
 % ImgContacts assigns an Nx8 matrix called 'Contacts' as a metric to each
 % object stone in 'dataParticles', where N is the number of neighbouring
 % particles in proximal contact with the object stone, and the columns are:
@@ -29,8 +29,9 @@ function ImgContacts(outFile,seDiam,sampleRate,outGroup)
 %
 % WARNING: Too high of a 'sampleRate' value may result in computer freeze
 % due to lack of resources.  Lowering the this value may be necessary.
+% The default value of 10% used in the 'main.m' script produces good results.
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
@@ -39,12 +40,12 @@ function ImgContacts(outFile,seDiam,sampleRate,outGroup)
 % See also ImgStacks, ImgParticles, ImgBedExtend, ImgSurfaces, ImgExposure,
 % and ImgEntrainment.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 %---------CHECKING REQUIREMENTS BEFORE RUN------------
@@ -103,14 +104,14 @@ for k = 1:dataCount
     %------------get coords and their voxel count for stone k-------------
 
     % reassign kth object stone coordinates and remove it from table
-    idx = find(tab(:,1)==k); 
+    idx = find(tab(:,1)==k);
     x = coord{idx}; % reassign kth stone coordinates as x
     coord(idx,:) = []; % removing kth coordinates from coord
     tab(idx,:) = []; % removing kth entry from table
     n = size(x,1); % voxel count for object stone
 
     % resample kth stone with fewer coordinates if too large
-    if n >= max(tab(:,2)) % get at least sampleRate*100% resample 
+    if n >= max(tab(:,2)) % get at least sampleRate*100% resample
         sampleSize = max(round(sampleRate*n),max(tab(:,2)));
         idx = sort(datasample(1:n,sampleSize,'Replace',false));
         x = x(idx,:); % reduce kth coordinate vector
@@ -175,11 +176,11 @@ end
 function [se] = strel3d(sz)
 
 % modify strel for 3D spherical SE
-sw = (sz - 1)/2; 
-ses2 = ceil(sz/2); 
-[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw); 
-m = sqrt(x.^2 + y.^2 + z.^2); 
-b = (m <= m(ses2, ses2, sz)); 
+sw = (sz - 1)/2;
+ses2 = ceil(sz/2);
+[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw);
+m = sqrt(x.^2 + y.^2 + z.^2);
+b = (m <= m(ses2, ses2, sz));
 se = strel('arbitrary', b);
 
 end

@@ -4,14 +4,17 @@ function ImgEntrainment(outFile, maxDist2, d50, d84, Cd, Cl, resMM, tol, kill, c
 % ImgEntrainment calculates entrainment metrics for sample surface grains.
 %
 % ImgEntrainment(outFile, maxDist2, d50, d84, Cd, Cl, resMM, tol, kill, coheFlag)
-% is a vector-based, moment-balance entrainment model for calculating
-% critical shear stress and associated metrics for coarse surface grains.
-% Pivot angle and the two plane of rotation (POR) angles for bearing and
-% tilt are calculated following entrainment calculations. 
-% 
+% is a vector-based, moment balance entrainment model for calculating critical
+% shear stress and associated metrics for coarse surface grains.  Entrainment
+% is calculated from the moment balance about a 3D axis of rotation (AOR).
+%
+% ImgEntrainment uses a binary search algorithm to calculate the moment balance.
+% Pivot angle and the two plane of rotation (POR) angles for bearing and tilt
+% are calculated once critical shear stress is calculated.
+%
 % ImgEntrainment requires the MATLAB Parallel Computing Toolbox and calls
 % on the following subroutine arguments:
-% 
+%
 %   outFile = name of MAT file to store the updated 'dataParticles' array
 %   maxDist2 = maximum squared voxel distance allowed to contact grains
 %   d84 = the 84th percetile of grain size distribution of sample grains
@@ -19,16 +22,18 @@ function ImgEntrainment(outFile, maxDist2, d50, d84, Cd, Cl, resMM, tol, kill, c
 %   Cl = coefficient of hydraulic lift force for natural stones
 %   resMM = voxel side length resolution for the scanned sample image (mm)
 %   tol = tolerance of moment balance used to obtain critical shear stress
-% 
-% ImgEntrainment updates and saves the 'dataParticles' structure array with
-% the following metrics for each stone in the sample:
 %
-%   PivotAngle = angle within the POR between gravity and rotation (degrees)
-%   PlaneBearing = departure angle of POR from downstream flow (degrees)
-%   PlaneTilt = departure angle of POR from gravity vector (degrees)
+% Each stone in the sample is tested for 'potential entrainment' by testing
+% for nonzero entrainment force.  If entrainment is possible, ImgEntrainment
+% creates a structure array 'Entrainment', which is attached to the structure
+% array 'dataParticles', and contains the following metrics:
+%
+%   PivotAngle = angle within the POR between gravity and the AOR (degrees)
+%   PlaneBearing = departure angle of POR from the downstream vector (degrees)
+%   PlaneTilt = departure angle of POR from the gravity vector (degrees)
 %   ProjectionMM = distance from mean local bed elevation to top of grain (mm)
 %   TauCr = critical shear stress for grain entrainment (Pa)
-%   TauCrStar = dimensionless critical shear stress
+%   TauCrStar = dimensionless critical shear stress (-)
 %   DragForce = hydrodynamic fluid drag force (N)
 %   LiftForce = hydrodynamic fluid lift force (N)
 %   CohesiveForce = tensile resistance force due to fine-grain matrix (N)
@@ -48,7 +53,7 @@ function ImgEntrainment(outFile, maxDist2, d50, d84, Cd, Cl, resMM, tol, kill, c
 %   Tol = moment balance convergence tolerance
 %   Kill = consecutive non-entrained grain count before killing algorithm
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
@@ -57,12 +62,12 @@ function ImgEntrainment(outFile, maxDist2, d50, d84, Cd, Cl, resMM, tol, kill, c
 % See also ImgStacks, ImgContacts, ImgParticles, ImgBedExtend, ImgSurfaces,
 % and ImgExposure.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 
@@ -116,30 +121,30 @@ dataParticles = data.dataParticles;
 
 
 for k = 1:partCount % looping over particles
-    
+
     % starting lapse timer
     tic
-    
+
     %-----------DROP STONES THAT ARE BOTTOM CROPPED------------
     if (dataParticles(k).CroppedFlag)
-        
+
         disp('=========================================================')
         fprintf('Stone bottom cropped for ParticleID = %u\n', k)
         killCounter = killCounter + 1; % increment kill switch
         continue
-        
+
     end
-    
+
     %-----------CHECKING STONE EXPOSURE TO FORCES--------------
-    [Fd, Fl, protMM, idxZ] = EntrainForces(dataParticles(k), ...
+    [Fd, Fl, projMM, idxZ] = EntrainForces(dataParticles(k), ...
         labelParticlesBed, d84, 1000, Cd, Cl, 0, 0, resMM);
-    
+
     % If no force, then continue to next particle
     if (sum(sum([Fd Fl])) == 0 || isnan(idxZ))
-        
+
         disp('=========================================================')
         fprintf('No entrainment forces for ParticleID = %u\n', k)
-        
+
         % kill loop when more than 20 consecutive particles are buried
         killCounter = killCounter + 1;
         if killCounter > kill
@@ -148,32 +153,32 @@ for k = 1:partCount % looping over particles
             break
         end
         continue
-        
+
     end
-    
+
 
     %-----------GETTING VIABLE CONTACT LIST--------------------
-    [pairs, tests] = GetContactPairs(dataParticles(k),maxDist2); 
-    
+    [pairs, tests] = GetContactPairs(dataParticles(k),maxDist2);
+
     % checking for nonexistant or single contact point
     if (isscalar(pairs) || isempty(pairs))
-        
+
         disp('=========================================================')
         fprintf('No contact points for ParticleID = %u\n', k)
         killCounter = killCounter + 1; % increment kill switch
         continue
-        
+
     else % particle found with entrainment
-        
+
         % getting pairs count reset kill loop counter
         disp('=========================================================')
         fprintf('Entrainment structure created for ParticleID = %u\n', k)
         n = size(pairs,1); % there are at least one pair
         killCounter = 0; % resetting kill switch
-        
+
     end
-    
-    
+
+
     %-----------CALCULATING RESISTIVE FORCE---------------------
     % getting metrics from database
     vol = dataParticles(k).VolumeMM3/1000^3; % particle volume (m3)
@@ -182,17 +187,17 @@ for k = 1:partCount % looping over particles
     mat = dataParticles(k).MatrixContactAreaRatio; % matrix cont area ratio
     bwSurf = labelParticlesSurf == k; % surface element count for kth particle
     surfArea = sum(bwSurf(:))*resMM^2; % surface area of stone (mm2)
-    
+
     % calculate forces and sum results as resistive force
     if coheFlag
-        Fc = [0 0 cohesiveArea*surfArea*mat]'; % cohesive force on stone (N)
+        Fc = [0 0 cohesiveArea*surfArea*mat]'; % cohesive force (N), EQ (14a)
     else
         Fc = [0 0 0]'; % do not apply cohesive force
     end
-    Fw = [0 0 (rhoS - rho)*g*vol]'; % submerged weight of water (N)
+    Fw = [0 0 (rhoS - rho)*g*vol]'; % submerged weight of water (N), EQ (13)
     Fr = Fc + Fw; % resistive force (N)
-    
-    
+
+
     %-------------CALCULATING ENTRAINMENT MOMENT ARM-----------------
     Re = zeros(n,3); % preallocating for entrainment arm
     cent = [cent(1:2) idxZ]; % centroid of applied Fe point
@@ -201,28 +206,28 @@ for k = 1:partCount % looping over particles
         Re(j,:) = cont(cont(:,1) == pairs(j,1),3:5); % left contact centroid
     end
     Re = repelem(cent,n,1) - Re; % moment arms for entrainment forces
-    
-    
-    
+
+
+
     %----------GETTING CRITICAL SHEAR FOR EACH CONTACT PAIR----------
     fprintf('Finding critical shear from %u viable contact pairs\n',n)
     shear = zeros(n,1);
-    
+
     parfor j = 1:n % looping through contact pairs
-        
-        
+
+
         %-------------RETRIEVING INFORMATION FOR CONTACT PAIRS----------
         % get rotation axis unit vector
         lambda = pairs(j,12:14)';
-        
+
         % resistance moment arm from contact proj onto POR
-        Rr = -pairs(j,18:20)'; 
-        
+        Rr = -pairs(j,18:20)';
+
         % get bearing and tilt angles for plane of rotation
         beta = pairs(j,22); % bearing angle
         gamma = pairs(j,23); % tilt angle
-        
-        
+
+
         %--------GETTING INITIAL ENTRAINMENT CALCULATIONS-------------
         % setting initial range for shear from no flow conditions
         dTau = 200; % N/m2
@@ -239,21 +244,21 @@ for k = 1:partCount % looping over particles
         % summing entrainment forces at boundaries
         Fe1 = Fd1 + Fl1; % lower bound of force
         Fe2 = Fd2 + Fl2; % upper bound of force
-        
-        % calculating initial moment at tau = [0 dTau]
+
+        % calculating initial moment at tau = [0 dTau], EQ (7)
         m01 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe1));
         m02 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe2));
-        
-        
+
+
         %---------RESETTING SHEAR INTERVAL TO ZERO MOMENT INTERVAL-------
-        
+
         % setting iteration indices
         idx = 1;
-        
+
         % adjusting tau value towards m0 = 0 results
         adj = floor(m01/(m01 - m02)); % adjusting multiplier
         tau = [adj - 1 adj]*dTau; % tau value near m0 = 0
-        
+
         % skipping impossible convergence to m0 = 0
         if adj < 0 % condition for moving away from m0 = 0
             shear(j) = inf;
@@ -271,15 +276,15 @@ for k = 1:partCount % looping over particles
         % summing entrainment forces at boundaries
         Fe1 = Fd1 + Fl1; % lower bound of force
         Fe2 = Fd2 + Fl2; % upper bound of force
-        
-        % calculating initial moment at tau = [0 dTau]
+
+        % calculating initial moment at tau = [0 dTau], EQ (7)
         m01 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe1));
         m02 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe2));
         m0 = [m01 m02]; % initial moment interval to check
-        
-        
+
+
         %-------------BINARY SEARCH FOR MOMENT BALANCE------------
-        while (abs(mean(m0)) > tol && idx < 10000)
+        while (max(abs(m0)) > tol && idx < 10000)
 
             % adjusting tau interval until moment interval contains zero
             while (prod(m0) > 0)
@@ -292,17 +297,17 @@ for k = 1:partCount % looping over particles
                 % new lower bound
                 [Fd1, Fl1, ~, ~] = EntrainForces(dataParticles(k), ...
                     labelParticlesBed, d84, tau(1), Cd, Cl, gamma, beta, resMM);
-                
+
                 % new upper bound
                 [Fd2, Fl2, ~, ~] = EntrainForces(dataParticles(k), ...
                     labelParticlesBed, d84, tau(2), Cd, Cl, gamma, beta, resMM);
-                
+
                 % recalculating moments
                 Fe1 = Fd1 + Fl1; % lower bound of force
                 Fe2 = Fd2 + Fl2; % upper bound of force
                 m01 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe1));
                 m02 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe2));
-                m0 = [m01 m02]; % initial moment interval to check
+                m0 = [m01 m02]; % initial moment interval to check, EQ (7)
 
             end % ending inner while loop
 
@@ -333,20 +338,20 @@ for k = 1:partCount % looping over particles
             Fe2 = Fd2 + Fl2; % upper bound of force
             m01 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe1));
             m02 = lambda'*(cross(Rr,Fr) + cross(Re(j,:)',Fe2));
-            m0 = [m01 m02];
+            m0 = [m01 m02]; % subsequent moment interval to check, EQ (7)
 
         end % ending outer while loop
-        
+
         % storing shear value for jth contact pair
-        shear(j) = mean(tau); 
-        
+        shear(j) = mean(tau);
+
     end % ending for j loop over contact pairs
-    
+
     %---------GETTING MINIMUM CRITICAL SHEAR FROM PAIRS------------
     pairs = [pairs shear];
     idxShear = find(shear == min(shear),1);
     finalPair = pairs(idxShear,[1:2 21:24]);
-    
+
     %--------STORING FINAL CALCULATIONS TO DATABASE---------------
     contIDs = finalPair(1:2);
     alpha = finalPair(3);
@@ -354,19 +359,19 @@ for k = 1:partCount % looping over particles
     gamma = finalPair(5);
     tauCr = finalPair(6);
     tauCrStar = tauCr/((rhoS - rho)*g*D);
-    
+
     fprintf('\nFor left-right contact pair, Cl = %u and Cr = %u,\n',contIDs(1),contIDs(2))
     fprintf('critical shear, tauCr* = %0.4f, for ParticleID = %u\n\n', tauCrStar, k)
-    
+
     % getting final entrainment force values
     [Fd, Fl, ~, ~] = EntrainForces(dataParticles(k), ...
         labelParticlesBed, d84, tauCr, Cd, Cl, gamma, beta, resMM);
-        
+
     % storing information into structures
     dataParticles(k).Entrainment.PivotAngle = alpha;
     dataParticles(k).Entrainment.PlaneBearing = beta;
     dataParticles(k).Entrainment.PlaneTilt = gamma;
-    dataParticles(k).Entrainment.ProjectionMM = protMM;
+    dataParticles(k).Entrainment.ProjectionMM = projMM;
     dataParticles(k).Entrainment.TauCr = tauCr;
     dataParticles(k).Entrainment.TauCrStar = tauCrStar;
     dataParticles(k).Entrainment.DragForce = Fd;
@@ -408,7 +413,7 @@ end % end function
 % GetCohesiveArea
 
 function [cohesiveArea] = GetCohesiveArea(fileNum)
-    
+
 %---------------CALCULATING COHESIVE FORCE PER AREA------------
 % use overall GSD from sieving data to make weighted mean force/area
 
@@ -425,19 +430,19 @@ frac = frac./[sum(frac,2) sum(frac,2)];
 frac = frac(:,2);
 prop = prop/(sum(prop));
 
-% tensile force per area (N/mm2) for binary size and fraction of clay
+% tensile force per area (N/mm2) for binary size and fraction of clay, EQ (14b)
 forceArea = @ (size,frac) 0.002579.*size.^-0.5332.*frac.^0.2328;
 
-% weighted mean cohesive force per area (N/mm2)
+% weighted mean cohesive force per area (N/mm2), EQ (14c)
 cohesiveArea = forceArea(sizes,frac)'*prop/sum(prop);
 
 end
 
 
 
-%EntrainForces 
+%EntrainForces
 
-function [Fd, Fl, protMM, idxZ] = EntrainForces(dataPartK, lblBed, d84, tau, Cd, Cl, gamma, beta, resMM)
+function [Fd, Fl, projMM, idxZ] = EntrainForces(dataPartK, lblBed, d84, tau, Cd, Cl, gamma, beta, resMM)
 
 % converting d84 from mm to index
 d84Idx = round(d84/resMM);
@@ -450,7 +455,7 @@ img = dataPartK.FrontalImage; % 2D downstream view of single stone
 proTrue = round(dataPartK.MaxElevMM/resMM); % stone max elev as index
 ohArea = dataPartK.OverheadAreaMM2*1e-6; % overhead area (m2) for lift force
 er = dataPartK.ExposureRatio(1); % viewable fraction of ohArea
-EF = dataPartK.ExposureFactor; % exposure factor (hiding effects)
+EF = dataPartK.ExposureFactor; % exposure factor (hiding effects), EQ (10)
 
 % determining size of local bed
 y = size(lblBed,2);
@@ -478,7 +483,7 @@ for i = 1:x
     end
 end
 
-% calculating mean bed 
+% calculating mean bed
 muBed = round(mean(elevZ)); % mean bed elevation as index
 topElev = size(img,2); % highest elevation in image
 
@@ -496,7 +501,7 @@ f = f(1:length((topElev-muBed):topElev));
 
 rho = 1000; % kg/m3
 kappa = 0.407;
-u2 = tau/rho/kappa^2*f.^2; %*cos(beta*pi/180)/cos(gamma*pi/180); % Kirchner eqn (8)
+u2 = tau/rho/kappa^2*f.^2; % squared velocity profile, EQ (8)
 
 
 % --------------------INTEGRATION OVER VELOCITY PROFILE--------------------
@@ -558,15 +563,13 @@ f = f(h);
 
 % calculating forces in vector form
 Fu = sum(imgProt(:))/sum(img(:)); % stone areal fraction where u > 0
-EFadj = 1 - max([0, (Fu - EF)/Fu]); % adjust EF for area accounted for by u = 0
-Fd = [Cd/2*rho*sum(u2dA)*EFadj 0 0]'; % modified Kirchner eqn (10)
-Fl = [0 0 -Cl/3*rho*ohArea*er*(u2(p) - u2(pmD))]'; % Kirchner eqn (11)
+EFadj = 1 - max([0, (Fu - EF)/Fu]); % adjust EF, EQ (9b)
+Fd = [Cd/2*rho*sum(u2dA)*EFadj 0 0]'; % drag force, EQ (9a)
+Fl = [0 0 -Cl/2*rho*ohArea*er*(u2(p) - u2(pmD))]'; % lift force, EQ (11)
 
-appFd = round(zElev*u2dA/sum(u2dA)); % profile distance to apply force
+appFd = round(zElev*u2dA/sum(u2dA)); % profile distance to apply force, EQ (12)
 idxZ = proTrue + (idx - appFd); % index distance from top to apply force
-protMM = sum(u2dA > 0)*resMM; % protrusion height of stone (mm)
-
-% CHANGE FROM PROTRUSION TO PROJECTION UPDATE!!!@@
+projMM = sum(u2dA > 0)*resMM; % projection height of stone (mm)
 
 
 
@@ -627,7 +630,7 @@ pairs = zeros(n2,26);
 % conQ = cell(n2,1); % MIGHT NOT NEED
 
 % index for viableContacts
-idx = 0; 
+idx = 0;
 
 % left-right orientation by sorting on PhiX
 cent = sortrows(cent,2);
@@ -662,23 +665,23 @@ for i = 1:(n-1) % indexing left contact
         % orthogonal projection of contact vector onto plane of rotation
         projPOR = eye(3) - rot'*rot/(rot*rot');
         pairs(idx,18:20) = conL*projPOR;
-        
-        % pivot angle calculations (alpha)
+
+        % pivot angle calculations (alpha), EQ (6a)
         projGrav = [0 0 9.81]*projPOR; % project gravity onto POR
         projCl = pairs(idx,18:20); % projection of Cl onto POR
         prodNorms = norm(projGrav)*norm(projCl); % product of norms
         pairs(idx,21) = real(acos(projGrav*projCl'/prodNorms)*180/pi);
-        
-        % bearing angle calculations (beta)
+
+        % bearing angle calculations (beta), EQ (6b)
         projPORXY = eye(3) - rotXY'*rotXY/(rotXY*rotXY');
         projX = [1 0 0]*projPORXY;
         pairs(idx,22) = real(acos([1 0 0]*projX'/norm(projX))*180/pi);
-        
-        % tilt angle calculations (gamma)
+
+        % tilt angle calculations (gamma), EQ (6c)
         lambda =  pairs(idx,12:14);
         lambdaXY =  pairs(idx,15:17);
         pairs(idx,23) = real(acos(lambda*lambdaXY')*180/pi);
-        
+
         % storing vector for TEST4: obstructing contact test
         pairs(idx,24:26) = -projX/norm(projX);
 
@@ -708,22 +711,22 @@ test4 = false(n2,1); % preallocating logical vector
 
 % checking each contact pair against all other contact points
 for k = 1:n2
-    
+
     % initiallize obstructing contact flag
     obsFlag = false;
-    
+
     % getting table of all other contacts points aside from kth pair
     obstr = cent(cent(:,1) ~= pairs(k,1) | cent(:,1) ~= pairs(k,2),:);
-    
+
     % replacing contact CM with vector centered on particle CM
     n3 = size(obstr,1);
     partMat = repmat(part,n3,1);
     obstr(:,4:6) = obstr(:,4:6) - partMat;
-    
+
     % getting test vectors for kth contact pair
     nCont = pairs(k,9:11);
     nProj = pairs(k,24:26);
-    
+
     % checking each contact point with kth pair
     for t = 1:n3
         obsVec = obstr(t,4:6);
@@ -732,13 +735,13 @@ for k = 1:n2
             break
         end
     end
-    
+
     if obsFlag
         test4(k) = false; % fails test
     else
         test4(k) = true; % passes test
     end
-    
+
 end
 
 
@@ -757,6 +760,3 @@ pairs = pairs(testAll,1:23);
 
 
 end
-
-
-

@@ -4,19 +4,19 @@ function ImgStacks(stacksPath, outPath, outFile, idxBottom, resMM)
 % ImgStacks imports stacked TIFF files of particles and fine-grain matrix.
 %
 % ImgStacks(stacksPath, outPath, outFile, idxBottom, resMM) is a subroutine
-% that requires two input image sets in TIFF stack format: an 8-bit binary 
+% that requires two input image sets in TIFF stack format: an 8-bit binary
 % image of separated sample grains and a 16-bit grayscale of corresponding
-% fine-grained sample matrix obrained during image segmentation (see Wiki). 
+% fine-grained sample matrix obrained during image segmentation (see Wiki).
 %
-% ImgStacks requires the MATLAB Image Processing Toolbox, the Statistics 
+% ImgStacks requires the MATLAB Image Processing Toolbox, the Statistics
 % and Machine Learning Toolbox, and has the following subroutine arguments:
-% 
+%
 %   stacksPath = path from current working directory to TIFF stack folders
 %   outPath = path from current working directory to write all output images
 %   outFile = name of MAT file to store output image arrays and metrics
 %   idxBottom = index of 2D layer that contains bottom of the scanned sample
 %   resMM = voxel side length resolution for the scanned sample image (mm)
-% 
+%
 % ImgStacks writes the following TIFF virtual stacks as binary (bw) and
 % labelled (label) images in the 'outPath' sample subfolder:
 %
@@ -26,11 +26,11 @@ function ImgStacks(stacksPath, outPath, outFile, idxBottom, resMM)
 %   labelParticles = same as 'labelParticlesFull' with cropped grains removed
 %   labelParticlesFull = labelled grains used as ID (ordered top to bottom)
 %   labelParticlesSurf = surface voxels for all grains in 'labelParticlesFull'
-% 
+%
 % ImgStacks saves these same binary and labelled 3D images as arrays along
 % with their corresponding connected component (cc) structure arrays to the
 % 'outFile' MAT file saved in the current working directory.  The structure
-% array 'dataParticles' is created and saved to 'outFile', and contains the 
+% array 'dataParticles' is created and saved to 'outFile', and contains the
 % following metrics for each particle in the 'labelParticlesFull' image:
 %
 %   ParticleID = unique grain identifier from the 'labelParticleFull' array
@@ -39,7 +39,7 @@ function ImgStacks(stacksPath, outPath, outFile, idxBottom, resMM)
 %   BoundingBox = grain bounding box used to find local mean bed elevation
 %   CroppedFlag = logical (whole stone = 0, stone cropped off at bottom = 1)
 %
-% Please see details in the README.md file located on the PATCheS Project 
+% Please see details in the README.md file located on the PATCheS Project
 % GitHub page (https://github.com/NERCPATCheS/VectorEntrainment3D).
 %
 % AUTHOR: Hal Voepel
@@ -48,12 +48,12 @@ function ImgStacks(stacksPath, outPath, outFile, idxBottom, resMM)
 % See also ImgContacts, ImgParticles, ImgBedExtend, ImgSurfaces, ImgExposure,
 % and ImgEntrainment.
 
-% REFERENCES 
-% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (submitted), 
-% Development of a vector-based 3D grain entrainment model with 
+% REFERENCES
+% Voepel, H., J. Leyland, R. Hodge, S. Ahmed, and D. Sear (2019),
+% Development of a vector-based 3D grain entrainment model with
 % application to X-ray computed tomography (XCT)scanned riverbed
-% sediment, Earth Surface Processes and Landforms (?????)
-% 
+% sediment, Earth Surface Processes and Landforms, doi: 10.1002/esp.4608
+%
 % Copyright (C) 2018  PATCheS Project (http://www.nercpatches.org/)
 
 %---------CHECKING REQUIREMENTS BEFORE RUN------------
@@ -86,7 +86,7 @@ imgHeightFull = infoParticlesFull(1).Height;
 bwParticlesFull = false(imgHeightFull,imgWidthFull,tifCountFull);
 
 % retrieve image slices from tiff stack
-for k = 1:tifCountFull 
+for k = 1:tifCountFull
     fileNameParticlesFull = [pathParticlesFull tifParticlesFull(k).name];
     bwParticlesFull(:,:,k) = imread(fileNameParticlesFull);
 end
@@ -131,7 +131,7 @@ mu = tbl(:,1)'*tbl(:,2)/(one'*tbl(:,2)); % finding mean
 bwMatrix = false(imgHeight,imgWidth,tifCount);
 for k = 1:tifCount
     fileNameMatrix = [pathMatrix tifMatrix(k).name];
-    bwMatrix(:,:,k) = im2bw(imread(fileNameMatrix), mu/2^16);
+    bwMatrix(:,:,k) = imbinarize(imread(fileNameMatrix), mu/2^16);
 end
 
 % trimming any matrix overlap with stones
@@ -208,7 +208,7 @@ end
 %---------SAVING TO MAT AND WRITING IMAGES TO OUT FOLDERS----------
 
 
-% save arrays for analysis in other scripts 
+% save arrays for analysis in other scripts
 save(outFile,'ccParticlesFull','bwParticles','bwParticlesFull','bwMatrix',...
     'labelParticles','labelParticlesFull','labelParticlesSurf','dataParticles')
 
@@ -264,11 +264,11 @@ end % end imgStacks function
 function [se] = strel3d(sz)
 
 % modify strel for 3D spherical SE
-sw = (sz - 1)/2; 
-ses2 = ceil(sz/2); 
-[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw); 
-m = sqrt(x.^2 + y.^2 + z.^2); 
-b = (m <= m(ses2, ses2, sz)); 
+sw = (sz - 1)/2;
+ses2 = ceil(sz/2);
+[y,x,z] = meshgrid(-sw:sw, -sw:sw, -sw:sw);
+m = sqrt(x.^2 + y.^2 + z.^2);
+b = (m <= m(ses2, ses2, sz));
 se = strel('arbitrary', b);
 
 end
